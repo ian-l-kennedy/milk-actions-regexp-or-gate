@@ -1,0 +1,108 @@
+name: Test Github Actions Regexp OR Gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Clean wait (positive case)
+  wait-1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clean Wait
+        shell: bash
+        run: |
+          echo "Starting a clean wait for 90 seconds..."
+          sleep 90
+
+  # Some failures but ultimately succeeds (positive case)
+  wait-2:
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [pass, fail]
+        build_iteration: [1, 2]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Simulate Passing and Failing Jobs
+        shell: bash
+        run: |
+          if [[ "${{ matrix.project }}" == "fail" ]]; then
+            echo "Simulating a failure..."
+            exit 1
+          else
+            echo "Simulating a success..."
+          fi
+
+  # All jobs fail (negative case)
+  wait-3:
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [fail]
+        build_iteration: [1, 2, 3]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Simulate Only Failing Jobs
+        shell: bash
+        run: |
+          echo "Simulating a failure..."
+          exit 1
+
+  # Test the OR Gate with clean wait (positive case)
+  test-actions-or-gate-1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Use Regexp OR Gate Action
+        uses: ./ # Reference the action defined in the same repository
+        with:
+          regexp: "wait-1.*"
+          base_url: "https://api.github.com"
+          owner: "ian-l-kennedy"
+          repo: ${{ github.repository }}
+          workflow_id: ${{ github.run_id }}
+          outer_retry_limit: 5
+          outer_retry_delay: 60
+
+  # Test the OR Gate with mixed results (positive case)
+  test-actions-or-gate-2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Use Regexp OR Gate Action
+        uses: ./ # Reference the action defined in the same repository
+        with:
+          regexp: "wait-2.*"
+          base_url: "https://api.github.com"
+          owner: "ian-l-kennedy"
+          repo: ${{ github.repository }}
+          workflow_id: ${{ github.run_id }}
+          outer_retry_limit: 5
+          outer_retry_delay: 60
+
+  # Test the OR Gate with all failures (negative case)
+  test-actions-or-gate-3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Use Regexp OR Gate Action (Expected Failure)
+        uses: ./ # Reference the action defined in the same repository
+        with:
+          regexp: "wait-3.*"
+          base_url: "https://api.github.com"
+          owner: "ian-l-kennedy"
+          repo: ${{ github.repository }}
+          workflow_id: ${{ github.run_id }}
+          outer_retry_limit: 5
+          outer_retry_delay: 60
+      - name: Expect Failure
+        if: success() # Convert this to a fail check
+        run: exit 1

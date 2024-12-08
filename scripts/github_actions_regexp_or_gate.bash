@@ -20,6 +20,8 @@ set -u
 
 NOTICE "Executing github_actions_regexp_or_gate.bash..."
 
+REQUIRE_COMMAND jq
+
 INFO "Processing the command line parameters..."
 
 # Default values
@@ -28,6 +30,8 @@ base_url=""
 owner=""
 repo=""
 workflow_id=""
+outer_retry_limit=60
+outer_retry_delay=300
 
 # Parse flags
 while [[ $# -gt 0 ]]; do
@@ -37,6 +41,8 @@ while [[ $# -gt 0 ]]; do
     --owner) owner="$2"; shift 2 ;;
     --repo) repo="$2"; shift 2 ;;
     --workflow-id) workflow_id="$2"; shift 2 ;;
+    --outer-retry-limit) outer_retry_limit="$2"; shift 2 ;;
+    --outer-retry-delay) outer_retry_delay="$2"; shift 2 ;;
     *) echo "Unknown option $1"; exit 1 ;;
   esac
 done
@@ -46,6 +52,8 @@ desc_base_url="The base URL of the GitHub repository (e.g., https://api.github.c
 desc_owner="The owner of the GitHub repository (e.g., username or organization name) (--owner)"
 desc_repo="The name of the GitHub repository (--repo)"
 desc_workflow_id="The ID of the workflow where this action is invoked (--workflow-id)"
+desc_outer_retry_limit="The maximum number of iterations for the outer loop (--outer-retry-limit)"
+desc_outer_retry_delay="The delay in seconds for each outer loop iteration (--outer-retry-delay)"
 
 # Validate required parameters
 if [[ -z "$regexp" ]]; then
@@ -94,6 +102,8 @@ INFO "  Base URL: $base_url"
 INFO "  Owner: $owner"
 INFO "  Repo: $repo"
 INFO "  Workflow ID: $workflow_id"
+INFO "  Outer Retry Limit: $outer_retry_limit"
+INFO "  Outer Retry Delay: $outer_retry_delay"
 
 INFO "Defining functions..."
 
@@ -205,10 +215,8 @@ evaluate_jobs() {
 
 INFO "main..."
 
-# Outer loop to retry evaluation for up to 5 hours
-outer_retry_limit=60
+# Outer loop to retry evaluation for up to outer_retry_limit iterations
 outer_retry_count=0
-outer_retry_delay=300
 
 while true; do
     # Inner loop to fetch and filter jobs
@@ -229,7 +237,7 @@ while true; do
             
             if [[ -n "$filtered_jobs" && "$filtered_jobs" != "[]" ]]; then
                 INFO "Successfully filtered jobs matching the regexp."
-              break
+                break
             else
                 WARN "No jobs matching the regexp: $regexp. Retrying as part of the group operation."
             fi
@@ -265,7 +273,7 @@ while true; do
     # Outer loop delay and retry logic
     ((outer_retry_count++))
     if ((outer_retry_count >= outer_retry_limit)); then
-        ERROR "Jobs are still in progress after $outer_retry_limit attempts (6 hours). Exiting."
+        ERROR "Jobs are still in progress after $outer_retry_limit attempts. Exiting."
         exit 1
     fi
 

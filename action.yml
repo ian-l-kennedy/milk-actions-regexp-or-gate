@@ -16,6 +16,14 @@ inputs:
   input_workflow_id:
     description: "The ID of the workflow where this action is invoked"
     required: true
+  input_outer_retry_limit:
+    description: "The maximum number of iterations for the outer loop"
+    required: false
+    default: 60
+  input_outer_retry_delay:
+    description: "The delay in seconds for each outer loop iteration"
+    required: false
+    default: 300
 runs:
   using: "composite"
   steps:
@@ -33,9 +41,13 @@ runs:
         echo "input_owner: ${{ inputs.input_owner }}"
         echo "input_repo: ${{ inputs.input_repo }}"
         echo "input_workflow_id: ${{ inputs.input_workflow_id }}"
+        echo "input_outer_retry_limit: ${{ inputs.input_outer_retry_limit }}"
+        echo "input_outer_retry_delay: ${{ inputs.input_outer_retry_delay }}"
 
         bash ./scripts/github_actions_regexp_or_gate.bash --regexp "${input_regexp}" \
             --base-url "${input_base_url}"  \
             --owner "${input_owner}"  \
             --repo "${input_repo}"  \
-            --workflow-id "${input_workflow_id}"
+            --workflow-id "${input_workflow_id}" \
+            --outer-retry-limit "${input_outer_retry_limit}" \
+            --outer-retry-delay "${input_outer_retry_delay}"
