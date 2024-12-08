@@ -1,9 +1,6 @@
 name: regexp_or_gate
 description: "Blocks a workflow on the OR result of jobs gathered with a regexp"
 inputs:
-  input_regexp:
-    description: "The regular expression to gather job names"
-    required: true
   input_base_url:
     description: "The base URL of the GitHub repository (e.g., https://api.github.com)"
     required: true
@@ -16,11 +13,17 @@ inputs:
   input_workflow_id:
     description: "The ID of the workflow where this action is invoked"
     required: true
-  input_outer_retry_limit:
+  input_github_token:
+    description: "The GitHub personal access token with appropriate repository permissions"
+    required: true
+  regexp:
+    description: "The regular expression to gather job names"
+    required: true
+  outer_retry_limit:
     description: "The maximum number of iterations for the outer loop"
     required: false
     default: 60
-  input_outer_retry_delay:
+  outer_retry_delay:
     description: "The delay in seconds for each outer loop iteration"
     required: false
     default: 300
@@ -33,21 +36,23 @@ runs:
         set -e
         set -o pipefail
         set -u
-        
+
         echo "Invoking regexp_or_gate..."
         echo "Inputs:"
-        echo "input_regexp: ${{ inputs.input_regexp }}"
         echo "input_base_url: ${{ inputs.input_base_url }}"
         echo "input_owner: ${{ inputs.input_owner }}"
         echo "input_repo: ${{ inputs.input_repo }}"
         echo "input_workflow_id: ${{ inputs.input_workflow_id }}"
-        echo "input_outer_retry_limit: ${{ inputs.input_outer_retry_limit }}"
-        echo "input_outer_retry_delay: ${{ inputs.input_outer_retry_delay }}"
+        echo "regexp: ${{ inputs.regexp }}"
+        echo "outer_retry_limit: ${{ inputs.outer_retry_limit }}"
+        echo "outer_retry_delay: ${{ inputs.outer_retry_delay }}"
+        echo "input_github_token: *** (hidden for security)"
 
-        bash ./scripts/github_actions_regexp_or_gate.bash --regexp "${input_regexp}" \
-            --base-url "${input_base_url}"  \
-            --owner "${input_owner}"  \
-            --repo "${input_repo}"  \
-            --workflow-id "${input_workflow_id}" \
-            --outer-retry-limit "${input_outer_retry_limit}" \
-            --outer-retry-delay "${input_outer_retry_delay}"
+        bash ./scripts/github_actions_regexp_or_gate.bash --regexp "${{ inputs.regexp }}" \
+            --base-url "${{ inputs.input_base_url }}" \
+            --owner "${{ inputs.input_owner }}" \
+            --repo "${{ inputs.input_repo }}" \
+            --workflow-id "${{ inputs.input_workflow_id }}" \
+            --outer-retry-limit "${{ inputs.outer_retry_limit }}" \
+            --outer-retry-delay "${{ inputs.outer_retry_delay }}" \
+            --github-token "${{ inputs.input_github_token }}"
