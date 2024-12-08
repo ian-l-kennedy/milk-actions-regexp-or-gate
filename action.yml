@@ -1,0 +1,56 @@
+name: regexp_or_gate
+description: "Blocks a workflow on the OR result of jobs gathered with a regexp"
+inputs:
+  input_regexp:
+    description: "The regular expression to gather job names"
+    required: true
+  input_base_url:
+    description: "The base URL of the GitHub repository (e.g., https://api.github.com)"
+    required: true
+  input_owner:
+    description: "The owner of the GitHub repository (e.g., username or organization name)"
+    required: true
+  input_repo:
+    description: "The name of the GitHub repository"
+    required: true
+  input_workflow_id:
+    description: "The ID of the workflow where this action is invoked"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Check for curl command availability
+      shell: bash
+      run: |
+        if ! command -v curl > /dev/null; then
+            echo "'curl' is not installed or not available in PATH. Please install curl to proceed."
+            exit 1
+        fi
+    - name: Run the OR Gate logic
+      shell: bash
+      run: |
+        milk_url="https://raw.githubusercontent.com/ian-l-kennedy"
+        milk_bash="${milk_url}/milk-bash/refs/heads/main/src/milk.bash"
+        if ! curl --head --silent --fail "${milk_bash}" > /dev/null; then
+            echo "Cannot connect to bash script source dependency: ${milk_bash}."
+        else
+            source <(curl --silent "${milk_bash}")
+        fi
+
+        # REQUIRE_COMMAND curl
+        # REQUIRE_COMMAND wget
+
+        NOTICE "Invoking regexp_or_gate..."
+        INFO "Inputs:"
+        INFO "input_regexp: ${{ inputs.input_regexp }}"
+        INFO "input_base_url: ${{ inputs.input_base_url }}"
+        INFO "input_owner: ${{ inputs.input_owner }}"
+        INFO "input_repo: ${{ inputs.input_repo }}"
+        INFO "input_workflow_id: ${{ inputs.input_workflow_id }}"
+
+        bash ./scripts/github_actions_regexp_or_gate.bash --regexp "${input_regexp}" \
+            --base-url "${input_base_url}"  \
+            --owner "${input_owner}"  \
+            --repo "${input_repo}"  \
+            --workflow-id "${input_workflow_id}"
+        
