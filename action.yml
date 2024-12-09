@@ -32,7 +32,7 @@ inputs:
   input_repo:
     description: "The name of the GitHub repository"
     required: true
-  input_workflow_id:
+  input_workflow_run_id:
     description: "The ID of the workflow where this action is invoked"
     required: true
   input_github_token:
@@ -64,7 +64,7 @@ runs:
         echo "input_base_url: ${{ inputs.input_base_url }}"
         echo "input_owner: ${{ inputs.input_owner }}"
         echo "input_repo: ${{ inputs.input_repo }}"
-        echo "input_workflow_id: ${{ inputs.input_workflow_id }}"
+        echo "input_workflow_run_id: ${{ inputs.input_workflow_run_id }}"
         echo "regexp: ${{ inputs.regexp }}"
         echo "outer_retry_limit: ${{ inputs.outer_retry_limit }}"
         echo "outer_retry_delay: ${{ inputs.outer_retry_delay }}"
@@ -74,7 +74,7 @@ runs:
             --base-url "${{ inputs.input_base_url }}" \
             --owner "${{ inputs.input_owner }}" \
             --repo "${{ inputs.input_repo }}" \
-            --workflow-id "${{ inputs.input_workflow_id }}" \
+            --workflow-run-id "${{ inputs.input_workflow_run_id }}" \
             --outer-retry-limit "${{ inputs.outer_retry_limit }}" \
             --outer-retry-delay "${{ inputs.outer_retry_delay }}" \
             --github-token "${{ inputs.input_github_token }}"

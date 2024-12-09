@@ -51,7 +51,7 @@ regexp=""
 base_url=""
 owner=""
 repo=""
-workflow_id=""
+workflow_run_id=""
 outer_retry_limit=60
 outer_retry_delay=300
 github_token=""
@@ -63,7 +63,7 @@ while [[ $# -gt 0 ]]; do
     --base-url) base_url="$2"; shift 2 ;;
     --owner) owner="$2"; shift 2 ;;
     --repo) repo="$2"; shift 2 ;;
-    --workflow-id) workflow_id="$2"; shift 2 ;;
+    --workflow-run-id) workflow_run_id="$2"; shift 2 ;;
     --outer-retry-limit) outer_retry_limit="$2"; shift 2 ;;
     --outer-retry-delay) outer_retry_delay="$2"; shift 2 ;;
     --github-token) github_token="$2"; shift 2 ;;
@@ -75,7 +75,7 @@ desc_regexp="The regular expression to gather job names (--regexp)"
 desc_base_url="The base URL of the GitHub repository (e.g., https://api.github.com) (--base-url)"
 desc_owner="The owner of the GitHub repository (e.g., username or organization name) (--owner)"
 desc_repo="The name of the GitHub repository (--repo)"
-desc_workflow_id="The ID of the workflow where this action is invoked (--workflow-id)"
+desc_workflow_run_id="The ID of the workflow where this action is invoked (--workflow-id)"
 desc_outer_retry_limit="The maximum number of iterations for the outer loop (--outer-retry-limit)"
 desc_outer_retry_delay="The delay in seconds for each outer loop iteration (--outer-retry-delay)"
 
@@ -117,11 +117,11 @@ elif [[ "$repo" == "" ]]; then
   exit 1
 fi
 
-if [[ -z "$workflow_id" ]]; then
-  ERROR "Missing required parameter: $desc_workflow_id"
+if [[ -z "$workflow_run_id" ]]; then
+  ERROR "Missing required parameter: $desc_workflow_run_id"
   exit 1
-elif [[ "$workflow_id" == "" ]]; then
-  ERROR "Required parameter is present but is blank: $desc_workflow_id"
+elif [[ "$workflow_run_id" == "" ]]; then
+  ERROR "Required parameter is present but is blank: $desc_workflow_run_id"
   exit 1
 fi
 
@@ -135,7 +135,7 @@ INFO "  Regexp: $regexp"
 INFO "  Base URL: $base_url"
 INFO "  Owner: $owner"
 INFO "  Repo: $repo"
-INFO "  Workflow ID: $workflow_id"
+INFO "  Workflow ID: $workflow_run_id"
 INFO "  Outer Retry Limit: $outer_retry_limit"
 INFO "  Outer Retry Delay: $outer_retry_delay"
 
@@ -206,13 +206,13 @@ clear_log() {
 
 # Function to fetch all workflow jobs with pagination using file-based aggregation
 get_all_workflow_jobs() {
-  local workflow_id="$1"
+  local workflow_run_id="$1"
   local base_url="$2"
   local owner="$3"
   local repo="$4"
   local output_file="/tmp/workflow_jobs.json"
 
-  LOGGER_INFO "Initializing job fetching for workflow_id: $workflow_id, base_url: $base_url, owner: $owner, repo: $repo"
+  LOGGER_INFO "Initializing job fetching for workflow_run_id: $workflow_run_id, base_url: $base_url, owner: $owner, repo: $repo"
   LOGGER_INFO "Output file: $output_file"
 
   # Ensure the output file is empty
@@ -226,19 +226,19 @@ get_all_workflow_jobs() {
     LOGGER_INFO "Fetching jobs for page $page with per_page: $per_page"
     LOGGER_INFO "curl --silent --fail -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer $github_token' '${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_id}/jobs?per_page=${per_page}&page=${page}'"
     curl --silent --fail -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $github_token" \
-      "${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_id}/jobs?per_page=${per_page}&page=${page}" | jq '.' | while IFS= read -r line; do
+      "${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_run_id}/jobs?per_page=${per_page}&page=${page}" | jq '.' | while IFS= read -r line; do
         LOGGER_INFO "$line"
     done
     LOGGER_INFO "curl -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer $github_token' '${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_id}/jobs?per_page=${per_page}&page=${page}'"
     curl -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $github_token" \
-      "${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_id}/jobs?per_page=${per_page}&page=${page}" | jq '.' | while IFS= read -r line; do
+      "${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_run_id}/jobs?per_page=${per_page}&page=${page}" | jq '.' | while IFS= read -r line; do
         LOGGER_INFO "$line"
     done
     local response
     response=$(curl --silent --fail \
       -H "Accept: application/vnd.github+json" \
       -H "Authorization: Bearer $github_token" \
-      "${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_id}/jobs?per_page=${per_page}&page=${page}")
+      "${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_run_id}/jobs?per_page=${per_page}&page=${page}")
 
     if [[ -z "$response" ]]; then
       LOGGER_ERROR "Empty response from GitHub API for page $page. Ensure the API is reachable and credentials are correct."
@@ -518,8 +518,8 @@ while true; do
         INFO "Inner loop iteration: $retry_count"
 
         # Fetch all workflow jobs
-        INFO "Calling get_all_workflow_jobs with workflow_id: $workflow_id, base_url: $base_url, owner: $owner, repo: $repo"
-        all_jobs=$(get_all_workflow_jobs "$workflow_id" "$base_url" "$owner" "$repo")
+        INFO "Calling get_all_workflow_jobs with workflow_run_id: $workflow_run_id, base_url: $base_url, owner: $owner, repo: $repo"
+        all_jobs=$(get_all_workflow_jobs "$workflow_run_id" "$base_url" "$owner" "$repo")
         fetch_status=$?
         display_log
         clear_log
@@ -551,12 +551,12 @@ while true; do
                 WARN "No jobs matching the regexp: $regexp. Retrying as part of the group operation."
             fi
         else
-            WARN "No jobs found for the workflow run ID: $workflow_id. Retrying as part of the group operation."
+            WARN "No jobs found for the workflow run ID: $workflow_run_id. Retrying as part of the group operation."
         fi
 
         ((retry_count++))
         if ((retry_count >= retry_limit)); then
-            ERROR "Failed to fetch and filter workflow jobs for the workflow run ID: $workflow_id after $retry_limit attempts."
+            ERROR "Failed to fetch and filter workflow jobs for the workflow run ID: $workflow_run_id after $retry_limit attempts."
             display_log
             clear_log
             exit 1
