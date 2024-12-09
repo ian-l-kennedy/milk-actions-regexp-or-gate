@@ -12,6 +12,7 @@ jobs:
   # Clean wait (positive case)
   wait-1:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Clean Wait
         shell: bash
@@ -27,6 +28,7 @@ jobs:
         project: [pass, fail]
         build_iteration: [1, 2]
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Simulate Passing and Failing Jobs
         shell: bash
@@ -46,6 +48,7 @@ jobs:
         project: [fail]
         build_iteration: [1, 2, 3]
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Simulate Only Failing Jobs
         shell: bash
@@ -56,53 +59,103 @@ jobs:
   # Test the OR Gate with clean wait (positive case)
   test-actions-or-gate-1:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Use Regexp OR Gate Action
-        uses: ./ # Reference the action defined in the same repository
+        uses: ./
         with:
+          input_base_url: "https://api.github.com"
+          input_owner: ${{ github.repository_owner }}
+          input_repo: "${{ github.event.repository.name }}"
+          input_workflow_id: ${{ github.run_id }}
+          input_github_token: ${{ secrets.GITHUB_TOKEN }}
           regexp: "wait-1.*"
-          base_url: "https://api.github.com"
-          owner: "ian-l-kennedy"
-          repo: ${{ github.repository }}
-          workflow_id: ${{ github.run_id }}
           outer_retry_limit: 5
           outer_retry_delay: 60
 
   # Test the OR Gate with mixed results (positive case)
   test-actions-or-gate-2:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Use Regexp OR Gate Action
-        uses: ./ # Reference the action defined in the same repository
+        uses: ./
         with:
+          input_base_url: "https://api.github.com"
+          input_owner: ${{ github.repository_owner }}
+          input_repo: "${{ github.event.repository.name }}"
+          input_workflow_id: ${{ github.run_id }}
+          input_github_token: ${{ secrets.GITHUB_TOKEN }}
           regexp: "wait-2.*"
-          base_url: "https://api.github.com"
-          owner: "ian-l-kennedy"
-          repo: ${{ github.repository }}
-          workflow_id: ${{ github.run_id }}
           outer_retry_limit: 5
           outer_retry_delay: 60
 
   # Test the OR Gate with all failures (negative case)
   test-actions-or-gate-3:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Use Regexp OR Gate Action (Expected Failure)
-        uses: ./ # Reference the action defined in the same repository
+      - name: UseRegexpORGateAction-ExpectedFailure
+        id: or-gate-action
+        uses: ./
         with:
+          input_base_url: "https://api.github.com"
+          input_owner: ${{ github.repository_owner }}
+          input_repo: "${{ github.event.repository.name }}"
+          input_workflow_id: ${{ github.run_id }}
+          input_github_token: ${{ secrets.GITHUB_TOKEN }}
           regexp: "wait-3.*"
-          base_url: "https://api.github.com"
-          owner: "ian-l-kennedy"
-          repo: ${{ github.repository }}
-          workflow_id: ${{ github.run_id }}
           outer_retry_limit: 5
           outer_retry_delay: 60
-      - name: Expect Failure
-        if: success() # Convert this to a fail check
-        run: exit 1
+        continue-on-error: true
+      - name: Validate Negative Case
+        if: steps.or-gate-action.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "Negative case confirmed: OR Gate action failed as expected."
+      - name: Fail If Unexpected Success
+        if: steps.or-gate-action.outcome == 'success'
+        shell: bash
+        run: |
+          echo "Unexpected success. Marking the test as failed."
+          exit 1
+
+  # Final aggregate result
+  final-aggregate-result:
+    runs-on: ubuntu-latest
+    needs:
+      - test-actions-or-gate-1
+      - test-actions-or-gate-2
+      - test-actions-or-gate-3
+    steps:
+      - name: Evaluate Final Results
+        shell: bash
+        run: |
+          echo "Evaluating results of all test-actions-or-gate jobs..."
+          test1="${{ needs.test-actions-or-gate-1.result }}"
+          test2="${{ needs.test-actions-or-gate-2.result }}"
+          test3="${{ needs.test-actions-or-gate-3.result }}"
+
+          echo "Results:"
+          echo "  test-actions-or-gate-1: $test1"
+          echo "  test-actions-or-gate-2: $test2"
+          echo "  test-actions-or-gate-3: $test3"
+
+          if [[ "$test1" == "success" && "$test2" == "success" && "$test3" == "success" ]]; then
+            echo "All tests passed. Marking workflow as successful."
+          else
+            echo "One or more tests failed. Marking workflow as failed."
+            exit 1
+          fi
