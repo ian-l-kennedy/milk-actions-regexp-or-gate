@@ -71,7 +71,7 @@ jobs:
           input_base_url: "https://api.github.com"
           input_owner: ${{ github.repository_owner }}
           input_repo: "${{ github.event.repository.name }}"
-          input_workflow_id: ${{ github.run_id }}
+          input_workflow_run_id: ${{ github.run_id }}
           input_github_token: ${{ secrets.GITHUB_TOKEN }}
           regexp: "wait-1.*"
           outer_retry_limit: 5
@@ -92,7 +92,7 @@ jobs:
           input_base_url: "https://api.github.com"
           input_owner: ${{ github.repository_owner }}
           input_repo: "${{ github.event.repository.name }}"
-          input_workflow_id: ${{ github.run_id }}
+          input_workflow_run_id: ${{ github.run_id }}
           input_github_token: ${{ secrets.GITHUB_TOKEN }}
           regexp: "wait-2.*"
           outer_retry_limit: 5
@@ -114,7 +114,7 @@ jobs:
           input_base_url: "https://api.github.com"
           input_owner: ${{ github.repository_owner }}
           input_repo: "${{ github.event.repository.name }}"
-          input_workflow_id: ${{ github.run_id }}
+          input_workflow_run_id: ${{ github.run_id }}
           input_github_token: ${{ secrets.GITHUB_TOKEN }}
           regexp: "wait-3.*"
           outer_retry_limit: 5
