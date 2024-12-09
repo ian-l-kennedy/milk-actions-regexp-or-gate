@@ -224,12 +224,12 @@ get_all_workflow_jobs() {
 
   while :; do
     LOGGER_INFO "Fetching jobs for page $page with per_page: $per_page"
-    LOGGER_INFO "curl --silent --fail -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer $github_token' '${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_id}/jobs?per_page=${per_page}&page=${page}'"
+    LOGGER_INFO "curl --silent --fail -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer $github_token' '${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_run_id}/jobs?per_page=${per_page}&page=${page}'"
     curl --silent --fail -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $github_token" \
       "${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_run_id}/jobs?per_page=${per_page}&page=${page}" | jq '.' | while IFS= read -r line; do
         LOGGER_INFO "$line"
     done
-    LOGGER_INFO "curl -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer $github_token' '${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_id}/jobs?per_page=${per_page}&page=${page}'"
+    LOGGER_INFO "curl -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer $github_token' '${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_run_id}/jobs?per_page=${per_page}&page=${page}'"
     curl -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $github_token" \
       "${base_url}/repos/${owner}/${repo}/actions/runs/${workflow_run_id}/jobs?per_page=${per_page}&page=${page}" | jq '.' | while IFS= read -r line; do
         LOGGER_INFO "$line"
