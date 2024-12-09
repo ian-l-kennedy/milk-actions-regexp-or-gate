@@ -139,19 +139,20 @@ INFO "  Workflow ID: $workflow_id"
 INFO "  Outer Retry Limit: $outer_retry_limit"
 INFO "  Outer Retry Delay: $outer_retry_delay"
 
-# Setup log file
-LOG_FILE="/tmp/action_log.txt"
+# Setup a unique log file
+LOG_FILE="/tmp/action_log_milk_actions_regexp_or_gate_${workflow_run_id}_$$.txt"
 
-if [[ ! -e "$LOG_FILE" ]]; then
-    touch "$LOG_FILE"
-    if [[ $? -ne 0 ]]; then
-        echo "LOG ERROR: Failed to create log file: $LOG_FILE"
-        exit 1
-    fi
-elif [[ ! -w "$LOG_FILE" ]]; then
+if ! touch "$LOG_FILE"; then
+    echo "LOG ERROR: Failed to create log file: $LOG_FILE"
+    exit 1
+fi
+
+if [[ ! -w "$LOG_FILE" ]]; then
     echo "LOG ERROR: Log file is not writable: $LOG_FILE"
     exit 1
 fi
+
+INFO "Log file created: $LOG_FILE"
 
 INFO "Defining functions..."
 
